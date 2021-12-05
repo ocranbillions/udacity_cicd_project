@@ -53,7 +53,8 @@ jobs:
           paths: [backend/node_modules]
           key: backend-build
       - save_cache:
-          paths: [backend/dist]
+          paths: [backend]
+          # paths: [backend/dist]
           key: backend-dist
 
   # === TESTS ===
@@ -261,7 +262,8 @@ jobs:
           name: Zip artifact
           command: |
             cd /home
-            tar czf backend.tar.gz -P /home/circleci/project/backend/dist
+            tar czf backend.tar.gz -P /home/circleci/project/backend
+            # tar czf backend.tar.gz -P /home/circleci/project/backend/dist
       - run:
           name: Deploy artifact/backend
           command: |
