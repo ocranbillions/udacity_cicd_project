@@ -22,14 +22,18 @@
     src: backend.tar.gz
     dest: /home/ubuntu/backend.tar.gz
 
-- name: Start PM2
+- name: Install node -v12
+  shell: |
+    sudo apt update
+    sudo apt -y upgrade
+    sudo apt -y install curl dirmngr apt-transport-https lsb-release ca-certificates
+    curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    sudo apt -y install nodejs
+
+- name: Start backend Server
   shell: |
     cd /home/ubuntu/
     tar xzvf backend.tar.gz
-    # mv home/circleci/project/backend .
-    cd backend
-    sudo npm install -g npm@latest
-    sudo npm install -g webpack-dev-server
     sudo npm install
-    sudo npm run build
+
     sudo pm2 start npm --name backend -- start
