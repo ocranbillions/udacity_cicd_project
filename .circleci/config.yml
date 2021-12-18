@@ -3,6 +3,14 @@ version: 2.1
 orbs:
   aws-cli: circleci/aws-cli@2.0
   
+parameters:
+  workflow-id-global:
+    type: string
+    default: "${CIRCLE_WORKFLOW_ID:0:7}"
+  memstash-token:
+    type: string
+    default: "randomcharacters"
+
 commands:
   destroy_environment:
     description: Destroy backend and frontend cloudformation stacks given a workflow ID.
@@ -389,6 +397,42 @@ jobs:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"      
       - revert-migrations:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}" 
+  
+  cloudfront-update:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
+            apk add --update curl
+      - run:
+          name: Save OldWorkflowID
+          command: |
+            export OldWorkflowID=$(aws cloudformation list-exports \
+              --query "Exports[?Name==\`WorkflowID\`].Value" \
+              --no-paginate --output text)
+
+            echo "Old Workflow ID: ${OldWorkflowID}"
+
+            curl -H "Content-Type: text/plain" \
+              -H "token: <<pipeline.parameters.memstash-token>>" \
+              --request PUT --data $OldWorkflowID \
+              https://api.memstash.io/values/old_workflow_id_${CIRCLE_WORKFLOW_ID}
+      - run:
+          name: Update cloudfront distribution
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/cloudfront.yml \
+              --stack-name "udapeople-prod" \
+              --parameter-overrides WorkflowID="<<pipeline.parameters.workflow-id-global>>" \
+              --tags project=udapeople
+      - destroy_environment:
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"      
+      - revert-migrations:
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}" 
 
 workflows:
   default:
@@ -418,3 +462,5 @@ workflows:
           requires: [run-migrations]
       - smoke-test:
           requires: [deploy-backend, deploy-frontend]
+      - cloudfront-update:
+          requires: [smoke-test]
