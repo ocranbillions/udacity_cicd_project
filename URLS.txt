@@ -1,0 +1,2 @@
+[URL01] - https://github.com/ocranbillions/udacity_cicd_project
+[URL02] - http://udapeople-83931d2.s3-website-us-west-2.amazonaws.com/#/employees
