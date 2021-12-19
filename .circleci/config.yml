@@ -80,12 +80,7 @@ jobs:
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
-      # - save_cache:
-      #     paths: [backend]
-      #     # paths: [backend/dist]
-      #     key: backend-dist
 
-  # === TESTS ===
   test-frontend:
     docker:
       - image: circleci/node:13.8.0
@@ -104,8 +99,6 @@ jobs:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-      # - restore_cache:
-      #     keys: [backend-build]
       - run:
           name: backend_test
           command: |
@@ -113,7 +106,6 @@ jobs:
             npm install
             npm run test
 
-  # === AUDIT ===
   scan-frontend:
     docker:
       - image: circleci/node:13.8.0
@@ -143,10 +135,8 @@ jobs:
 
   deploy-infrastructure:
     docker:
-      # Docker image here that supports AWS CLI
       - image: amazon/aws-cli
     steps:
-      # Checkout code from git
       - checkout
       - run: yum install -y tar gzip
       - run:
@@ -177,7 +167,6 @@ jobs:
           root: ~/
           paths:
             - project/.circleci/ansible/inventory.txt
-      # Here's where you will add some code to rollback on failure  
       - destroy_environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"  
 
@@ -217,16 +206,10 @@ jobs:
             ansible-playbook \
               -i ~/project/.circleci/ansible/inventory.txt \
               .circleci/ansible/configure-server.yml
-      # - run:
-      #     name: Install AWS CLI for rollback
-      #     when: on_fail
-      #     command: |
-      #       apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
       - persist_to_workspace:
           root: ~/
           paths:
             - project/backend
-      # Here's where you will add some code to rollback on failure
       - destroy_environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}" 
       
@@ -250,7 +233,6 @@ jobs:
             then
               curl -H "Content-Type: text/plain" -H "token: 7933fe63-4687-4fa1-8426-aa25aa1730ec" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7}
             fi
-     # Here's where you will add some code to rollback on failure
       - destroy_environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"      
       - revert-migrations:
@@ -285,8 +267,7 @@ jobs:
             cd frontend
             npm install
             npm run build
-            aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
-      # Here's where you will add some code to rollback on failure   
+            aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive 
       - destroy_environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"      
       - revert-migrations:
@@ -306,51 +287,27 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            # apk add --update ansible curl nodejs npm tar gzip 
-            # pip install awscli
             apk add --update curl nodejs npm
             apk add --update ansible zip
             apk add --update openssh-client tar gzip
             pip install awscli
-      # - restore_cache:
-      #     keys: [backend-dist]
       - run:
           name: Build backend
           command: |
-            # cd /home
-            # tar czf backend.tar.gz -P /home/circleci/project/backend
-            # tar czf backend.tar.gz -P /home/circleci/project/backend/dist
             cd ~/project/backend
             ls
             cd ../
             cd backend/ && tar -zcvf ../backend.tar.gz . && cd - 
             mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
             mv backend.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
-      # - run:
-      #     name: Deploy artifact/backend
-      #     command: |
-      #       # your code here
-      #       cd backend
-      #       npm i
-      #       npm run build
-      #       cd ..
-      #       # Zip the directory
-      #       tar -C backend -czvf backend.tar.gz .
-      #       cd .circleci/ansible
-      #       echo "Contents  of the inventory.txt file is -------"
-      #       cat inventory.txt
-      #       export ANSIBLE_HOST_KEY_CHECKING=False
-      #       ansible-playbook -i inventory.txt deploy-backend.yml
       - run:
           name: Deploy backend Setup EC2 instance & copy compiled artifact to ec2
           command: |
-            # ls ~/project/.circleci/ansible/roles/deploy/files/
             cd ~/project/backend
             ansible-galaxy install weareinteractive.environment
             cat ~/project/.circleci/ansible/inventory.txt
             export ANSIBLE_HOST_KEY_CHECKING=False
             ansible-playbook -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/deploy-backend.yml
-      # Here's where you will add some code to rollback on failure  
       - destroy_environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"      
       - revert-migrations:
@@ -392,7 +349,6 @@ jobs:
             else
               return 1
             fi
-      # Here's where you will add some code to rollback on failure  
       - destroy_environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"      
       - revert-migrations:
